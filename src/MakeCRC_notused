@@ -1,0 +1,37 @@
+//https://ghsi.de/CRC/indexDetails.php?Polynom=100000111&Message=43
+// ==========================================================================
+// CRC Generation Unit - Linear Feedback Shift Register implementation
+// (c) Kay Gorontzi, GHSi.de, distributed under the terms of LGPL
+// ==========================================================================
+#include "string.h"
+
+char *MakeCRC(char *BitString)
+   {
+   static char Res[9];                                 // CRC Result
+   char CRC[8];
+   int  i;
+   char DoInvert;
+   //char BS[] = {*BitString};
+
+   for (i=0; i<8; ++i)  CRC[i] = 0;                    // Init before calculation
+
+   for (i=0; i<strlen(BitString); ++i)
+      {
+      DoInvert = ('1'==BitString[i]) ^ CRC[7];         // XOR required?
+
+      CRC[7] = CRC[6];
+      CRC[6] = CRC[5];
+      CRC[5] = CRC[4];
+      CRC[4] = CRC[3];
+      CRC[3] = CRC[2];
+      CRC[2] = CRC[1] ^ DoInvert;
+      CRC[1] = CRC[0] ^ DoInvert;
+      CRC[0] = DoInvert;
+      }
+
+   for (i=0; i<8; ++i)  Res[7-i] = CRC[i] ? '1' : '0'; // Convert binary to ASCII
+   Res[8] = 0;                                         // Set string terminator
+
+   return(Res);
+   }
+
