@@ -29,7 +29,7 @@ void init_i2c1IR(){
 	I2C_InitTypeDef I2C_InitStruct;
 	I2C_InitStruct.I2C_Ack = I2C_Ack_Enable ;
 	I2C_InitStruct.I2C_AcknowledgedAddress = I2C_AcknowledgedAddress_7bit;
-	I2C_InitStruct.I2C_ClockSpeed = 100000; //min 10kHz, max 100kHz
+	I2C_InitStruct.I2C_ClockSpeed = 10000; //in Hz, min 10kHz, max 100kHz
 	I2C_InitStruct.I2C_DutyCycle = I2C_DutyCycle_2; //should not be used this case
 	I2C_InitStruct.I2C_Mode = I2C_Mode_I2C;
 	I2C_InitStruct.I2C_OwnAddress1 = 1;//should not be used this case

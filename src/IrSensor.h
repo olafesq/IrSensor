@@ -5,12 +5,13 @@
  *      Author: Olaf
  */
 
-#ifndef SENSORS_H_
-#define SENSORS_H_
+#ifndef IRSENSOR_H_
+#define IRSENSOR_H_
 
 #include "bitset"
 #include "usart.h" //serial send jaoks
 #include "calcCRC.h"
+#include "timer.h"
 
 
 class IrSensor{
@@ -33,7 +34,7 @@ public:
 		I2C_SendData(I2C1, this->adrPEC);  //CRC8 control value
 		I2C_GenerateSTOP(I2C1, ENABLE);
 
-		setEmissivity(0.95);
+		//setEmissivity(0.95);
 	}
 
 	uint16_t readSensor(){
@@ -42,12 +43,20 @@ public:
 
 		//Send I2C message to IR
 		I2C_GenerateSTART(I2C1, ENABLE); //start condition
+			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_MODE_SELECT)==ERROR); //event checking stuff defined in stm32f4xx_i2c.h
 		I2C_Send7bitAddress(I2C1, this->address, I2C_Direction_Transmitter);//transmitter = LSB 0
+			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)==ERROR);
 		I2C_SendData(I2C1, 0x07); //actual command to read Tobj1
-		I2C_GenerateSTART(I2C1, ENABLE);
+			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_TRANSMITTED)==ERROR);
+		I2C_GenerateSTART(I2C1, ENABLE); //Repeated start
+			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_MODE_SELECT)==ERROR);
 		I2C_Send7bitAddress(I2C1, this->address, I2C_Direction_Receiver); //receiver = LSB 1
+			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED)==ERROR);
+			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_RECEIVED)==ERROR);
 		uint8_t LSB = I2C_ReceiveData(I2C1);
+			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_RECEIVED)==ERROR);
 		uint8_t MSB = I2C_ReceiveData(I2C1);
+			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_RECEIVED)==ERROR);
 		uint8_t PEC = I2C_ReceiveData(I2C1); //recieved CRC 8 control value
 		I2C_GenerateSTOP(I2C1, ENABLE);
 
@@ -118,7 +127,7 @@ public:
 
 private:
 
-	uint8_t address;
+	uint8_t address = 0x00; //default address is zero
 	uint8_t adrPEC;
 
 	void calcCRCAdr(){//calc address PEC
@@ -140,5 +149,5 @@ private:
 	}
 
 };
-#endif /* SENSORS_H_ */
+#endif /* IRSENSOR_H_ */
 
