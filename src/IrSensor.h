@@ -26,6 +26,8 @@ public:
 		calcCRCAdr(); //generates PEC values for address change
 		//uint8_t kontroll = checkCRCTemp(0xb9, 0x8b);
 
+		//Kommitud, et iga restart ei kirjutaks EEPROM'i üle..
+
 /*		I2C_GenerateSTART(I2C1, ENABLE); //start condition
 			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_MODE_SELECT)==ERROR);
 		I2C_Send7bitAddress(I2C1, 0x00, I2C_Direction_Transmitter); //default adr is zeros
@@ -84,11 +86,9 @@ public:
 		uint8_t LSB = I2C_ReceiveData(I2C1);
 			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_RECEIVED)==ERROR);
 		uint8_t MSB = I2C_ReceiveData(I2C1);
-		I2C_AcknowledgeConfig(I2C1, DISABLE);
-		I2C_NACKPositionConfig(I2C1,I2C_NACKPosition_Next); //NACK before STOP
+		I2C_AcknowledgeConfig(I2C1, DISABLE); //NACK before STOP
 			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_RECEIVED)==ERROR);
 		uint8_t PEC = I2C_ReceiveData(I2C1); //recieved CRC 8 control value
-		//I2C_NACKPositionConfig(I2C1, I2C_NACKPosition_Current); //NACK before STOP
 		I2C_GenerateSTOP(I2C1, ENABLE);
 
 		uint8_t calcPEC = checkCRCTemp(LSB, MSB);
@@ -105,6 +105,51 @@ public:
 		}
 
 	return objectT;
+	}
+
+	uint16_t readAmbient(){
+		//uint16_t ambientT; //read address 006h
+		uint16_t ambientT = 0; //read address 007h or 008h
+
+		//Send I2C message to IR
+		I2C_AcknowledgeConfig(I2C1, ENABLE);
+		I2C_GenerateSTART(I2C1, ENABLE); //start condition
+			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_MODE_SELECT)==ERROR); //event checking stuff defined in stm32f4xx_i2c.h
+		I2C_Send7bitAddress(I2C1, this->address<<1, I2C_Direction_Transmitter);//transmitter = LSB 0
+			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)==ERROR);
+		I2C_SendData(I2C1, 0x06); //actual command to read Tobj1
+			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_TRANSMITTED)==ERROR);
+		I2C_GenerateSTART(I2C1, ENABLE); //Repeated start
+			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_MODE_SELECT)==ERROR);
+		I2C_Send7bitAddress(I2C1, this->address<<1, I2C_Direction_Receiver); //receiver = LSB 1
+			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED)==ERROR){
+				if(I2C_GetFlagStatus(I2C1,I2C_FLAG_TIMEOUT)) serialSend("timed out!");
+			}
+			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_RECEIVED)==ERROR){
+				if(I2C_GetFlagStatus(I2C1,I2C_FLAG_TIMEOUT)) serialSend("timed out!");
+			}
+		uint8_t LSB = I2C_ReceiveData(I2C1);
+			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_RECEIVED)==ERROR);
+		uint8_t MSB = I2C_ReceiveData(I2C1);
+		I2C_AcknowledgeConfig(I2C1, DISABLE); //NACK before STOP
+			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_RECEIVED)==ERROR);
+		uint8_t PEC = I2C_ReceiveData(I2C1); //recieved CRC 8 control value
+		I2C_GenerateSTOP(I2C1, ENABLE);
+
+		uint8_t calcPEC = checkCRC(0x06, LSB, MSB);
+
+		if(PEC==calcPEC){ //if no data transmission errors
+			//Convert temp data to C
+			uint16_t data16b= (MSB<<8)|LSB;
+			float tempK = data16b/50;
+			float tempC = tempK - 273.15;
+
+			ambientT = tempC;
+		} else {
+			serialSend("PEC ei klapi");
+		}
+
+	return ambientT;
 	}
 
 	uint16_t readSMBaddr(){

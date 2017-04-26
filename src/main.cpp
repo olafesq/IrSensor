@@ -67,6 +67,7 @@ int main(void) {
             serialSend("Emissivity on "+ to_string(sensor1.readEmiss()));
 
             serialSend("Temp on " + to_string(sensor1.readSensor()));
+            serialSend("Ambient Temp on " + to_string(sensor1.readAmbient()));
 
 			delay_ms(500);
         } else {
