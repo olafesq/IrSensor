@@ -26,7 +26,23 @@ public:
 		calcCRCAdr(); //generates PEC values for address change
 		//uint8_t kontroll = checkCRCTemp(0xb9, 0x8b);
 
-		/*I2C_GenerateSTART(I2C1, ENABLE); //start condition
+		I2C_GenerateSTART(I2C1, ENABLE); //start condition
+			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_MODE_SELECT)==ERROR);
+		I2C_Send7bitAddress(I2C1, 0x00, I2C_Direction_Transmitter); //default adr is zeros
+			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)==ERROR);
+		I2C_SendData(I2C1, 0x2e); //eeprom adr
+			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_TRANSMITTED)==ERROR);
+		I2C_SendData(I2C1, 0x00); //LSB
+			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_TRANSMITTED)==ERROR);
+		I2C_SendData(I2C1, MSB); //MSB
+			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_TRANSMITTED)==ERROR);
+		I2C_SendData(I2C1, 0x6f);  //CRC8 control value
+			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_TRANSMITTED)==ERROR);
+		I2C_GenerateSTOP(I2C1, ENABLE);
+
+		delay_ms(10);
+
+		I2C_GenerateSTART(I2C1, ENABLE); //start condition
 			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_MODE_SELECT)==ERROR);
 		I2C_Send7bitAddress(I2C1, 0x00, I2C_Direction_Transmitter); //default adr is zeros
 			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)==ERROR);
@@ -39,7 +55,7 @@ public:
 		I2C_SendData(I2C1, this->adrPEC);  //CRC8 control value
 			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_TRANSMITTED)==ERROR);
 		I2C_GenerateSTOP(I2C1, ENABLE);
-*/
+
 		//setEmissivity(0.95);
 	}
 
@@ -48,15 +64,16 @@ public:
 		uint16_t objectT = 0; //read address 007h or 008h
 
 		//Send I2C message to IR
+		I2C_AcknowledgeConfig(I2C1, ENABLE);
 		I2C_GenerateSTART(I2C1, ENABLE); //start condition
 			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_MODE_SELECT)==ERROR); //event checking stuff defined in stm32f4xx_i2c.h
-		I2C_Send7bitAddress(I2C1, this->address, I2C_Direction_Transmitter);//transmitter = LSB 0
+		I2C_Send7bitAddress(I2C1, this->address<<1, I2C_Direction_Transmitter);//transmitter = LSB 0
 			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)==ERROR);
 		I2C_SendData(I2C1, 0x07); //actual command to read Tobj1
 			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_TRANSMITTED)==ERROR);
 		I2C_GenerateSTART(I2C1, ENABLE); //Repeated start
 			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_MODE_SELECT)==ERROR);
-		I2C_Send7bitAddress(I2C1, this->address, I2C_Direction_Receiver); //receiver = LSB 1
+		I2C_Send7bitAddress(I2C1, this->address<<1, I2C_Direction_Receiver); //receiver = LSB 1
 			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED)==ERROR){
 				if(I2C_GetFlagStatus(I2C1,I2C_FLAG_TIMEOUT)) serialSend("timed out!");
 			}
@@ -66,6 +83,7 @@ public:
 		uint8_t LSB = I2C_ReceiveData(I2C1);
 			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_RECEIVED)==ERROR);
 		uint8_t MSB = I2C_ReceiveData(I2C1);
+		I2C_AcknowledgeConfig(I2C1, DISABLE);
 		I2C_NACKPositionConfig(I2C1,I2C_NACKPosition_Next); //NACK before STOP
 			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_RECEIVED)==ERROR);
 		uint8_t PEC = I2C_ReceiveData(I2C1); //recieved CRC 8 control value
@@ -86,6 +104,48 @@ public:
 		}
 
 	return objectT;
+	}
+
+	uint16_t readSMBaddr(){
+		uint16_t adr = 0;
+
+		//Send I2C message to IR
+		I2C_AcknowledgeConfig(I2C1, ENABLE);
+		I2C_GenerateSTART(I2C1, ENABLE); //start condition
+			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_MODE_SELECT)==ERROR); //event checking stuff defined in stm32f4xx_i2c.h
+		I2C_Send7bitAddress(I2C1, 0x00, I2C_Direction_Transmitter);//transmitter = LSB 0
+			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)==ERROR);
+		I2C_SendData(I2C1, 0x2e); //actual command to read Tobj1
+			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_TRANSMITTED)==ERROR);
+		I2C_GenerateSTART(I2C1, ENABLE); //Repeated start
+			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_MODE_SELECT)==ERROR);
+		I2C_Send7bitAddress(I2C1, 0x00, I2C_Direction_Receiver); //receiver = LSB 1
+			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED)==ERROR){
+				if(I2C_GetFlagStatus(I2C1,I2C_FLAG_TIMEOUT)) serialSend("timed out!");
+			}
+			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_RECEIVED)==ERROR){
+				if(I2C_GetFlagStatus(I2C1,I2C_FLAG_TIMEOUT)) serialSend("timed out!");
+			}
+		uint8_t LSB = I2C_ReceiveData(I2C1);
+			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_RECEIVED)==ERROR);
+		uint8_t MSB = I2C_ReceiveData(I2C1);
+		I2C_AcknowledgeConfig(I2C1, DISABLE);
+		I2C_NACKPositionConfig(I2C1,I2C_NACKPosition_Next); //NACK before STOP
+			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_RECEIVED)==ERROR);
+		uint8_t PEC = I2C_ReceiveData(I2C1); //recieved CRC 8 control value
+		//I2C_NACKPositionConfig(I2C1, I2C_NACKPosition_Current); //NACK before STOP
+		I2C_GenerateSTOP(I2C1, ENABLE);
+
+//			uint8_t calcPEC = checkCRCTemp(LSB, MSB);
+//
+//			if(PEC==calcPEC){ //if no data transmission errors
+//
+//			} else {
+//				serialSend("PEC ei klapi");
+//			}
+		uint16_t data16b= (MSB<<8)|LSB;
+
+	return data16b;
 	}
 
 	void setEmissivity(float epsilon){//Melexis dedault emissivity is 1. Value can be between 0,1 to 1,0.
@@ -144,6 +204,7 @@ private:
 
 	void calcCRCAdr(){//calc address PEC
 		bitset<32> inData((0x00<<24) | (0x2e<<16) | (this->address<<8) | 0x00);
+		//bitset<32> inData((0x00<<24) | (0x2e<<16) | 0x00<<8 | (this->address));
 		this->adrPEC = calcCRC(inData);
 	}
 
@@ -153,8 +214,8 @@ private:
 	}
 
 	uint8_t checkCRCTemp(uint8_t LSB, uint8_t MSB ){
-		bitset<40> inData(this->address);
-		bitset<40> bitStringBS1((0x07<<24) | ((this->address+1)<<16) | (LSB<<8) | MSB);
+		bitset<40> inData(this->address<<1);
+		bitset<40> bitStringBS1((0x07<<24) | (((this->address<<1) +1)<<16) | (LSB<<8) | MSB);
 		inData<<=32;
 		inData |= bitStringBS1;
 	return calcCRC(inData);

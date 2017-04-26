@@ -49,7 +49,7 @@ int main(void) {
 	init_USART2(9600); // initialize USART1 @ 9600 baud
 	serialSend("Init complete! Hello World!\r\n"); // just send a message to indicate that it works
 
-	IrSensor sensor1(0x00); //create new sensor object, initialize with address
+	IrSensor sensor1(0x10); //create new sensor object, initialize with address
 
 
     while (1) {
@@ -63,6 +63,8 @@ int main(void) {
             //string s = sensor1.testCRC8();
 			//serialSend("CRC8 kontroll: " + s);
 			//serialSend("CRC8 kontroll: " + to_string(sensor1.testCRC83()));
+            serialSend("Aadress on " + to_string(sensor1.readSMBaddr()));
+
             serialSend("Temp on " + to_string(sensor1.readSensor()));
 
 			delay_ms(500);

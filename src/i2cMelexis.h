@@ -34,8 +34,8 @@ void init_i2c1IR(){
 	I2C_InitStruct.I2C_Mode = I2C_Mode_SMBusHost; //I2C_Mode_I2C;
 	I2C_InitStruct.I2C_OwnAddress1 = 1;//should not be used this case
 	I2C_DigitalFilterConfig(I2C1, 10); //analog filter should be enabled by default
-	I2C_ARPCmd(I2C1, ENABLE); //address resolution protocol, probably not needed..
-	I2C_StretchClockCmd(I2C1, ENABLE);
+	//I2C_ARPCmd(I2C1, ENABLE); //address resolution protocol, probably not needed..
+	//I2C_StretchClockCmd(I2C1, ENABLE);
 	I2C_Init(I2C1, &I2C_InitStruct);
 
 	//I2C_CalculatePEC(I2C1, ENABLE); //CTC-8? Wrong type, stm32f4 is fixed CRC32
