@@ -56,19 +56,21 @@ public:
 		uint8_t LSB = I2C_ReceiveData(I2C1);
 			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_RECEIVED)==ERROR);
 		uint8_t MSB = I2C_ReceiveData(I2C1);
+		I2C_NACKPositionConfig(I2C1,I2C_NACKPosition_Next); //NACK before STOP
 			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_RECEIVED)==ERROR);
 		uint8_t PEC = I2C_ReceiveData(I2C1); //recieved CRC 8 control value
+		//I2C_NACKPositionConfig(I2C1, I2C_NACKPosition_Current); //NACK before STOP
 		I2C_GenerateSTOP(I2C1, ENABLE);
 
 		uint8_t calcPEC = checkCRCTemp(LSB, MSB);
 
 		if(PEC==calcPEC){ //if no data transmission errors
-		//Convert temp data to C
-		uint16_t data16b= (MSB<<8)|LSB;
-		float tempK = data16b/50;
-		float tempC = tempK - 273.15;
+			//Convert temp data to C
+			uint16_t data16b= (MSB<<8)|LSB;
+			float tempK = data16b/50;
+			float tempC = tempK - 273.15;
 
-		objectT = tempC;
+			objectT = tempC;
 		} else {
 			serialSend("PEC ei klapi");
 		}
