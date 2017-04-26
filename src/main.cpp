@@ -64,6 +64,7 @@ int main(void) {
 			//serialSend("CRC8 kontroll: " + s);
 			//serialSend("CRC8 kontroll: " + to_string(sensor1.testCRC83()));
             serialSend("Aadress on " + to_string(sensor1.readSMBaddr()));
+            serialSend("Emissivity on "+ to_string(sensor1.readEmiss()));
 
             serialSend("Temp on " + to_string(sensor1.readSensor()));
 
