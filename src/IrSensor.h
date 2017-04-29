@@ -63,8 +63,8 @@ public:
 	}
 
 	uint16_t readSensor(){
-		//uint16_t ambientT; //read address 006h
-		uint16_t objectT = 0; //read address 007h or 008h
+		uint16_t objectT = 0;
+		uint8_t command = 0x07;
 
 		//Send I2C message to IR
 		I2C_AcknowledgeConfig(I2C1, ENABLE);
@@ -72,7 +72,7 @@ public:
 			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_MODE_SELECT)==ERROR); //event checking stuff defined in stm32f4xx_i2c.h
 		I2C_Send7bitAddress(I2C1, this->address<<1, I2C_Direction_Transmitter);//transmitter = LSB 0
 			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)==ERROR);
-		I2C_SendData(I2C1, 0x07); //actual command to read Tobj1
+		I2C_SendData(I2C1, command); //actual command to read Tobj1
 			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_TRANSMITTED)==ERROR);
 		I2C_GenerateSTART(I2C1, ENABLE); //Repeated start
 			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_MODE_SELECT)==ERROR);
@@ -91,7 +91,7 @@ public:
 		uint8_t PEC = I2C_ReceiveData(I2C1); //recieved CRC 8 control value
 		I2C_GenerateSTOP(I2C1, ENABLE);
 
-		uint8_t calcPEC = checkCRCTemp(LSB, MSB);
+		uint8_t calcPEC = checkCRC(command, LSB, MSB);
 
 		if(PEC==calcPEC){ //if no data transmission errors
 			//Convert temp data to C
@@ -108,8 +108,8 @@ public:
 	}
 
 	uint16_t readAmbient(){
-		//uint16_t ambientT; //read address 006h
-		uint16_t ambientT = 0; //read address 007h or 008h
+		uint16_t ambientT = 0;
+		uint8_t command = 0x06;
 
 		//Send I2C message to IR
 		I2C_AcknowledgeConfig(I2C1, ENABLE);
@@ -117,7 +117,7 @@ public:
 			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_MODE_SELECT)==ERROR); //event checking stuff defined in stm32f4xx_i2c.h
 		I2C_Send7bitAddress(I2C1, this->address<<1, I2C_Direction_Transmitter);//transmitter = LSB 0
 			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)==ERROR);
-		I2C_SendData(I2C1, 0x06); //actual command to read Tobj1
+		I2C_SendData(I2C1, command); //actual command to read
 			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_TRANSMITTED)==ERROR);
 		I2C_GenerateSTART(I2C1, ENABLE); //Repeated start
 			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_MODE_SELECT)==ERROR);
@@ -136,7 +136,7 @@ public:
 		uint8_t PEC = I2C_ReceiveData(I2C1); //recieved CRC 8 control value
 		I2C_GenerateSTOP(I2C1, ENABLE);
 
-		uint8_t calcPEC = checkCRC(0x06, LSB, MSB);
+		uint8_t calcPEC = checkCRC(command, LSB, MSB);
 
 		if(PEC==calcPEC){ //if no data transmission errors
 			//Convert temp data to C
@@ -197,6 +197,7 @@ public:
 	float readEmiss(){
 			uint16_t emiss = 0;
 			float emissf = 0.0;
+			uint8_t command = 0x24;
 
 			//Send I2C message to IR
 			I2C_AcknowledgeConfig(I2C1, ENABLE);
@@ -204,7 +205,7 @@ public:
 				while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_MODE_SELECT)==ERROR); //event checking stuff defined in stm32f4xx_i2c.h
 			I2C_Send7bitAddress(I2C1, this->address<<1, I2C_Direction_Transmitter);//transmitter = LSB 0
 				while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)==ERROR);
-			I2C_SendData(I2C1, 0x24);
+			I2C_SendData(I2C1, command);
 				while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_TRANSMITTED)==ERROR);
 			I2C_GenerateSTART(I2C1, ENABLE); //Repeated start
 				while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_MODE_SELECT)==ERROR);
@@ -225,7 +226,7 @@ public:
 			//I2C_NACKPositionConfig(I2C1, I2C_NACKPosition_Current); //NACK before STOP
 			I2C_GenerateSTOP(I2C1, ENABLE);
 
-			uint8_t calcPEC = checkCRC(0x24, LSB, MSB);
+			uint8_t calcPEC = checkCRC(command, LSB, MSB);
 
 			if(PEC==calcPEC){ //if no data transmission errors
 				emiss= (MSB<<8)|LSB;
@@ -294,10 +295,6 @@ public:
 			return crcBits.to_ulong();
 	}
 
-	uint8_t testCRC83(){
-		bitset<32> inData((0x00<<24) | (0x22<<16) | (0x07<<8) | 0xc8); //initialize all bits to 1
-	return calcCRC(inData);
-	}
 
 private:
 
@@ -312,14 +309,6 @@ private:
 
 	uint8_t calcCRCEmm(uint8_t LSB, uint8_t MSB ){
 		bitset<32> inData(((this->address<<1)<<24) | (0x24<<16) | (LSB<<8) | MSB);
-	return calcCRC(inData);
-	}
-
-	uint8_t checkCRCTemp(uint8_t LSB, uint8_t MSB ){
-		bitset<40> inData(this->address<<1);
-		bitset<40> bitStringBS1((0x07<<24) | (((this->address<<1) +1)<<16) | (LSB<<8) | MSB);
-		inData<<=32;
-		inData |= bitStringBS1;
 	return calcCRC(inData);
 	}
 
