@@ -66,7 +66,7 @@ int main(void) {
             serialSend("Aadress on " + to_string(sensor1.readSMBaddr()));
             serialSend("Emissivity on "+ to_string(sensor1.readEmiss()));
 
-            serialSend("Temp on " + to_string(sensor1.readSensor()));
+            serialSend("Temp on " + to_string(sensor1.readTemp()));
             serialSend("Ambient Temp on " + to_string(sensor1.readAmbient()));
 
 			delay_ms(500);

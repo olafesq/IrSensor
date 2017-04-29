@@ -62,10 +62,7 @@ public:
 		setEmissivity(0.95);*/
 	}
 
-	uint16_t readSensor(){
-		uint16_t objectT = 0;
-		uint8_t command = 0x07;
-
+	uint16_t* readSensor(uint8_t command){
 		//Send I2C message to IR
 		I2C_AcknowledgeConfig(I2C1, ENABLE);
 		I2C_GenerateSTART(I2C1, ENABLE); //start condition
@@ -94,62 +91,41 @@ public:
 		uint8_t calcPEC = checkCRC(command, LSB, MSB);
 
 		if(PEC==calcPEC){ //if no data transmission errors
-			//Convert temp data to C
-			uint16_t data16b= (MSB<<8)|LSB;
-			float tempK = data16b/50;
-			float tempC = tempK - 273.15;
-
-			objectT = tempC;
+			data16b = (MSB<<8)|LSB;
+			return &data16b;
 		} else {
 			serialSend("PEC ei klapi");
+			return nullptr;
 		}
-
-	return objectT;
 	}
 
-	uint16_t readAmbient(){
-		uint16_t ambientT = 0;
+	float readTemp(){
+		float tempC = 0;
+		uint8_t command = 0x07;
+
+		uint16_t data = *readSensor(command);
+		float tempK = data/50;
+		tempC = tempK - 273.15;
+	return tempC;
+	}
+
+	float readAmbient(){
+		float tempC = 0;
 		uint8_t command = 0x06;
 
-		//Send I2C message to IR
-		I2C_AcknowledgeConfig(I2C1, ENABLE);
-		I2C_GenerateSTART(I2C1, ENABLE); //start condition
-			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_MODE_SELECT)==ERROR); //event checking stuff defined in stm32f4xx_i2c.h
-		I2C_Send7bitAddress(I2C1, this->address<<1, I2C_Direction_Transmitter);//transmitter = LSB 0
-			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)==ERROR);
-		I2C_SendData(I2C1, command); //actual command to read
-			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_TRANSMITTED)==ERROR);
-		I2C_GenerateSTART(I2C1, ENABLE); //Repeated start
-			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_MODE_SELECT)==ERROR);
-		I2C_Send7bitAddress(I2C1, this->address<<1, I2C_Direction_Receiver); //receiver = LSB 1
-			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED)==ERROR){
-				if(I2C_GetFlagStatus(I2C1,I2C_FLAG_TIMEOUT)) serialSend("timed out!");
-			}
-			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_RECEIVED)==ERROR){
-				if(I2C_GetFlagStatus(I2C1,I2C_FLAG_TIMEOUT)) serialSend("timed out!");
-			}
-		uint8_t LSB = I2C_ReceiveData(I2C1);
-			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_RECEIVED)==ERROR);
-		uint8_t MSB = I2C_ReceiveData(I2C1);
-		I2C_AcknowledgeConfig(I2C1, DISABLE); //NACK before STOP
-			while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_RECEIVED)==ERROR);
-		uint8_t PEC = I2C_ReceiveData(I2C1); //recieved CRC 8 control value
-		I2C_GenerateSTOP(I2C1, ENABLE);
+		uint16_t data = *readSensor(command);
+		float tempK = data/50;
+		tempC = tempK - 273.15;
+	return tempC;
+	}
 
-		uint8_t calcPEC = checkCRC(command, LSB, MSB);
+	float readEmiss(){
+		float emissf = 0.0;
+		uint8_t command = 0x24;
 
-		if(PEC==calcPEC){ //if no data transmission errors
-			//Convert temp data to C
-			uint16_t data16b= (MSB<<8)|LSB;
-			float tempK = data16b/50;
-			float tempC = tempK - 273.15;
-
-			ambientT = tempC;
-		} else {
-			serialSend("PEC ei klapi");
-		}
-
-	return ambientT;
+		uint16_t data = *readSensor(command);
+		emissf = data/65535.0;
+	return emissf;
 	}
 
 	uint16_t readSMBaddr(){
@@ -192,50 +168,6 @@ public:
 		adr= (MSB<<8)|LSB;
 
 	return adr;
-	}
-
-	float readEmiss(){
-			uint16_t emiss = 0;
-			float emissf = 0.0;
-			uint8_t command = 0x24;
-
-			//Send I2C message to IR
-			I2C_AcknowledgeConfig(I2C1, ENABLE);
-			I2C_GenerateSTART(I2C1, ENABLE); //start condition
-				while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_MODE_SELECT)==ERROR); //event checking stuff defined in stm32f4xx_i2c.h
-			I2C_Send7bitAddress(I2C1, this->address<<1, I2C_Direction_Transmitter);//transmitter = LSB 0
-				while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)==ERROR);
-			I2C_SendData(I2C1, command);
-				while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_TRANSMITTED)==ERROR);
-			I2C_GenerateSTART(I2C1, ENABLE); //Repeated start
-				while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_MODE_SELECT)==ERROR);
-			I2C_Send7bitAddress(I2C1, this->address<<1, I2C_Direction_Receiver); //receiver = LSB 1
-				while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED)==ERROR){
-					if(I2C_GetFlagStatus(I2C1,I2C_FLAG_TIMEOUT)) serialSend("timed out!");
-				}
-				while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_RECEIVED)==ERROR){
-					if(I2C_GetFlagStatus(I2C1,I2C_FLAG_TIMEOUT)) serialSend("timed out!");
-				}
-			uint8_t LSB = I2C_ReceiveData(I2C1);
-				while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_RECEIVED)==ERROR);
-			uint8_t MSB = I2C_ReceiveData(I2C1);
-			I2C_AcknowledgeConfig(I2C1, DISABLE);
-			I2C_NACKPositionConfig(I2C1,I2C_NACKPosition_Next); //NACK before STOP
-				while(I2C_CheckEvent(I2C1, I2C_EVENT_MASTER_BYTE_RECEIVED)==ERROR);
-			uint8_t PEC = I2C_ReceiveData(I2C1); //recieved CRC 8 control value
-			//I2C_NACKPositionConfig(I2C1, I2C_NACKPosition_Current); //NACK before STOP
-			I2C_GenerateSTOP(I2C1, ENABLE);
-
-			uint8_t calcPEC = checkCRC(command, LSB, MSB);
-
-			if(PEC==calcPEC){ //if no data transmission errors
-				emiss= (MSB<<8)|LSB;
-				emissf = emiss/65535.0;
-			} else {
-				serialSend("PEC ei klapi");
-			}
-
-		return emissf;
 	}
 
 	void setEmissivity(float epsilon){//Melexis dedault emissivity is 1. Value can be between 0,1 to 1,0.
@@ -300,6 +232,7 @@ private:
 
 	uint8_t address = 0x00; //default address is zero
 	uint8_t adrPEC;
+	uint16_t data16b = 0x00;
 
 	void calcCRCAdr(){//calc address PEC
 		bitset<32> inData((0x00<<24) | (0x2e<<16) | (this->address<<8) | 0x00);
