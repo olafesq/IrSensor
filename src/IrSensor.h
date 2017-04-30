@@ -103,15 +103,20 @@ public:
 		float tempC = 0;
 		uint8_t command = 0x07;
 
+		if(readSensor(command)==nullptr) return 0;
+
 		uint16_t data = *readSensor(command);
 		float tempK = data/50;
 		tempC = tempK - 273.15;
+
 	return tempC;
 	}
 
 	float readAmbient(){
 		float tempC = 0;
 		uint8_t command = 0x06;
+
+		if(readSensor(command)==nullptr) return 0;
 
 		uint16_t data = *readSensor(command);
 		float tempK = data/50;
@@ -122,6 +127,8 @@ public:
 	float readEmiss(){
 		float emissf = 0.0;
 		uint8_t command = 0x24;
+
+		if(readSensor(command)==nullptr) return 0;
 
 		uint16_t data = *readSensor(command);
 		emissf = data/65535.0;
