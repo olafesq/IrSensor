@@ -63,11 +63,11 @@ int main(void) {
             //string s = sensor1.testCRC8();
 			//serialSend("CRC8 kontroll: " + s);
 			//serialSend("CRC8 kontroll: " + to_string(sensor1.testCRC83()));
-            serialSend("Aadress on " + to_string(sensor1.readSMBaddr()));
-            serialSend("Emissivity on "+ to_string(sensor1.readEmiss()));
+            serialSend("\nAadress on " + to_string(sensor1.readSMBaddr()));
+            serialSend("\nEmissivity on "+ to_string(sensor1.readEmiss()));
 
-            serialSend("Temp on " + to_string(sensor1.readTemp()));
-            serialSend("Ambient Temp on " + to_string(sensor1.readAmbient()));
+            serialSend("\nTemp on " + to_string(sensor1.readTemp()));
+            serialSend("\nAmbient Temp on " + to_string(sensor1.readAmbient()));
 
 			delay_ms(500);
         } else {
@@ -75,6 +75,7 @@ int main(void) {
         }
 
     	GPIO_SetBits(GPIOD, GPIO_Pin_13);
+    	serialSend("\nTemp on " + to_string(sensor1.readTemp()));
     	delay_ms(500);
     	GPIO_ResetBits(GPIOD, GPIO_Pin_13);
     	delay_ms(500);
