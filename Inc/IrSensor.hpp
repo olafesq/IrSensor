@@ -34,11 +34,13 @@ static void setSMBaddr(uint8_t address){
 
 		uint8_t buffer[] = {mem, 0, 0, 0x6f};
 		HAL_I2C_Master_Transmit(&hi2c1, 0x00, buffer, 4, 500);
-		HAL_Delay(100);
+		HAL_Delay(10);
+		HAL_WWDG_Refresh(&hwwdg);
 		uint8_t buffer2[] = {mem, LSB, MSB, calcCRCAdr2(address)};
 		HAL_I2C_Master_Transmit(&hi2c1, 0x00, buffer2, 4, 500);
-		HAL_Delay(100);
+		HAL_Delay(10);
 
+		HAL_WWDG_Refresh(&hwwdg); //watchdog kicker
 }
 
 	IrSensor(uint8_t address) {
@@ -58,23 +60,25 @@ static void setSMBaddr(uint8_t address){
 		HAL_Delay(100);
 		*/
 		setEmissivity(0.95);
-		HAL_Delay(10);
+		//HAL_Delay(1);
 	}
 
 	uint16_t* readSensor(uint8_t command){
 		//Send I2C message to IR
 		HAL_I2C_Master_Sequential_Transmit_IT(&hi2c1, this->address<<1, &command, 1, I2C_FIRST_FRAME);
-		HAL_Delay(1);
+		HAL_Delay(5);
 
 		uint8_t buffer[] = {0, 0, 0};
 
 		HAL_I2C_Master_Sequential_Receive_IT(&hi2c1, this->address<<1, buffer, 3, I2C_LAST_FRAME);
-		HAL_Delay(1);
+		HAL_Delay(5);
 		uint8_t LSB = buffer[0];
 		uint8_t MSB = buffer[1];
 		uint8_t PEC = buffer[2];
 
 		uint8_t calcPEC = checkCRC(command, LSB, MSB);
+
+		HAL_WWDG_Refresh(&hwwdg); //watchdog kicker
 
 		if(PEC==calcPEC){ //if no data transmission errors
 			data16b = (MSB<<8)|LSB;
@@ -83,10 +87,11 @@ static void setSMBaddr(uint8_t address){
 			Serial_PutString("PEC ei klapi");
 			return nullptr;
 		}
+
 	}
 
 	float readTemp(){
-		float tempC = 0;
+		float tempC = 0.0;
 		uint8_t command = 0x07;
 
 		if(readSensor(command)==nullptr) return 0;
@@ -99,7 +104,7 @@ static void setSMBaddr(uint8_t address){
 	}
 
 	float readAmbient(){
-		float tempC = 0;
+		float tempC = 0.0;
 		uint8_t command = 0x06;
 
 		if(readSensor(command)==nullptr) return 0;
@@ -126,9 +131,12 @@ static void setSMBaddr(uint8_t address){
 
 		HAL_I2C_Master_Sequential_Transmit_IT(&hi2c1, 0x00, &mem, 1, I2C_FIRST_FRAME);
 		uint8_t buffer[] = {0, 0, 0};
-		HAL_Delay(10);
+		HAL_Delay(5);
 		HAL_I2C_Master_Sequential_Receive_IT(&hi2c1, 0x00, buffer, 3, I2C_LAST_FRAME);
-		HAL_Delay(10);
+		HAL_Delay(5);
+
+		HAL_WWDG_Refresh(&hwwdg); //watchdog kicker
+
 		uint8_t LSB = buffer[0];
 		uint8_t MSB = buffer[1];
 		uint8_t PEC = buffer[2];
@@ -147,13 +155,14 @@ static void setSMBaddr(uint8_t address){
 		uint8_t memE = 0x24;
 		uint8_t buffer[] = {memE, 0, 0, calcCRCEmm(0x00,0x00)};
 		HAL_I2C_Master_Transmit(&hi2c1, this->address<<1, buffer, 4, 500);
-		HAL_Delay(10);
+		HAL_Delay(5);
 		uint8_t MSB = ((emissivity >> 8) & 0xff);
 		uint8_t LSB = ((emissivity >> 0) & 0xff);
 		uint8_t buffer2[] = {mem, LSB, MSB, calcCRCEmm(LSB,MSB)};
 		HAL_I2C_Master_Transmit(&hi2c1, this->address<<1, buffer2, 4, 500);
+		HAL_Delay(5);
 
-		HAL_Delay(10);
+		HAL_WWDG_Refresh(&hwwdg); //watchdog kicker
 
 	}
 
