@@ -110,6 +110,9 @@ int main(void)
   IrSensor sensor2(0x02);
   IrSensor sensor3(0x03);
 
+  IrSensor sensor4(0x04);
+  IrSensor sensor5(0x05);
+  IrSensor sensor6(0x06);
 
   //CAN init
   CAN_TxHeaderTypeDef pTxHeader; //outgoing msg header
@@ -146,10 +149,16 @@ int main(void)
   {
 
 	  HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-	  float temps[3];
+
+	  //read temps into temps array
+	  float temps[6];
 	  temps[0] = sensor1.readTemp();
 	  temps[1] = sensor2.readTemp();
 	  temps[2] = sensor3.readTemp();
+
+	  temps[3] = sensor4.readTemp();
+	  temps[4] = sensor5.readTemp();
+	  temps[5] = sensor6.readTemp();
 
 	  //uint8_t *array1;
 	  //array1 = reinterpret_cast<uint8_t*>(&temps[0]);
@@ -161,13 +170,20 @@ int main(void)
 	  //uint8_t data[2];
 	  //memcpy(data, &temps[0], 2);
 
-	  double dataD[6];
+	  //Send temp array to can
+	  //dataD prepares temp data to be sent to CAN
+	  double dataD[12];
 	  dataD[1] = modf(temps[0], &dataD[0]);
 	  dataD[3] = modf(temps[1], &dataD[2]);
 	  dataD[5] = modf(temps[2], &dataD[4]);
-	  uint8_t aData[] = {dataD[0], round(dataD[1]*100), dataD[2], round(dataD[3]*100), dataD[4], round(dataD[5]*100),0,1};
 
-	  HAL_CAN_AddTxMessage(&hcan1, &pTxHeader, aData, &pTxMailbox);
+	  dataD[7] = modf(temps[3], &dataD[6]);
+	  dataD[9] = modf(temps[4], &dataD[8]);
+	  dataD[11] = modf(temps[5], &dataD[10]);
+	  uint8_t aData[] = {dataD[0], round(dataD[1]*100), dataD[2], round(dataD[3]*100), dataD[4], round(dataD[5]*100),0,1};
+	  	  HAL_CAN_AddTxMessage(&hcan1, &pTxHeader, aData, &pTxMailbox);
+	  uint8_t aData1[] = {dataD[6], round(dataD[7]*100), dataD[8], round(dataD[9]*100), dataD[10], round(dataD[11]*100),0,2};
+	  	  HAL_CAN_AddTxMessage(&hcan1, &pTxHeader, aData1, &pTxMailbox);
 
 
 	  temps[0] = sensor1.readAmbient();
@@ -178,7 +194,7 @@ int main(void)
 	  dataD[3] = modf(temps[1], &dataD[2]);
 	  dataD[5] = modf(temps[2], &dataD[4]);
 	  uint8_t aData2[] = {dataD[0], round(dataD[1]*100), dataD[2], round(dataD[3]*100), dataD[4], round(dataD[5]*100),0,0};
-	  HAL_CAN_AddTxMessage(&hcan1, &pTxHeader, aData2, &pTxMailbox);
+	  	  HAL_CAN_AddTxMessage(&hcan1, &pTxHeader, aData2, &pTxMailbox);
 
 
 

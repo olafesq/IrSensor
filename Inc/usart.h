@@ -62,7 +62,7 @@ extern void _Error_Handler(char *, int);
 void MX_USART1_UART_Init(void);
 
 /* USER CODE BEGIN Prototypes */
-void Serial_PutString(char*);
+void Serial_PutString(char const*);
 void Serial_PutInt(uint8_t*);
 /* USER CODE END Prototypes */
 

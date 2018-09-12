@@ -123,7 +123,7 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
 } 
 
 /* USER CODE BEGIN 1 */
-void Serial_PutString(char* p_string){
+void Serial_PutString(char const* p_string){
 	uint16_t length = (uint16_t)strlen(p_string);
 	while(HAL_UART_Transmit(&huart1, (uint8_t*)p_string, length, HAL_UART_TIMEOUT_VALUE)!=HAL_OK);
 }

@@ -66,12 +66,12 @@ static void setSMBaddr(uint8_t address){
 	uint16_t* readSensor(uint8_t command){
 		//Send I2C message to IR
 		HAL_I2C_Master_Sequential_Transmit_IT(&hi2c1, this->address<<1, &command, 1, I2C_FIRST_FRAME);
-		HAL_Delay(5);
+		HAL_Delay(1);
 
 		uint8_t buffer[] = {0, 0, 0};
 
 		HAL_I2C_Master_Sequential_Receive_IT(&hi2c1, this->address<<1, buffer, 3, I2C_LAST_FRAME);
-		HAL_Delay(5);
+		HAL_Delay(1);
 		uint8_t LSB = buffer[0];
 		uint8_t MSB = buffer[1];
 		uint8_t PEC = buffer[2];
@@ -79,6 +79,11 @@ static void setSMBaddr(uint8_t address){
 		uint8_t calcPEC = checkCRC(command, LSB, MSB);
 
 		HAL_WWDG_Refresh(&hwwdg); //watchdog kicker
+
+		if(MSB>>7==1){
+			Serial_PutString("\n Tempis oli error. ");
+			return nullptr; //st errorit
+		}
 
 		if(PEC==calcPEC){ //if no data transmission errors
 			data16b = (MSB<<8)|LSB;
@@ -94,9 +99,11 @@ static void setSMBaddr(uint8_t address){
 		float tempC = 0.0;
 		uint8_t command = 0x07;
 
-		if(readSensor(command)==nullptr) return 0;
-
-		uint16_t data = *readSensor(command);
+		uint16_t* dataP = readSensor(command);
+//		if(readSensor(command)==nullptr) return 0;
+		if(dataP==nullptr) return 0;
+//		uint16_t data = *readSensor(command);
+		uint16_t data = *dataP;
 		float tempK = data/50.0;
 		tempC = tempK - 273.15;
 
@@ -107,10 +114,12 @@ static void setSMBaddr(uint8_t address){
 		float tempC = 0.0;
 		uint8_t command = 0x06;
 
-		if(readSensor(command)==nullptr) return 0;
-
-		uint16_t data = *readSensor(command);
-		float tempK = data/50.0;
+		uint16_t* dataP = readSensor(command);
+//		if(readSensor(command)==nullptr) return 0;
+		if(dataP==nullptr) return 0;
+//		uint16_t data = *readSensor(command);
+		uint16_t data = *dataP;
+				float tempK = data/50.0;
 		tempC = tempK - 273.15;
 	return tempC;
 	}
